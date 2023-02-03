@@ -1,0 +1,181 @@
+import datetime
+
+class Uzytkownik: #blad
+    def __init__(self, username, password):
+        self.username = username
+#do kazdej funkcji(chyba)
+        self.password = password
+        self.words_to_learn = {}
+        self.words_learned = {}
+        self.last_session = None
+#pamietaj moze import os bedzie trzeba dodac
+    def sprawdz_password(self, password):
+        return self.password == password
+
+    def test_slowko(self, word, translation):
+        if self.words_to_learn[word] == translation:
+            if self.words_learned.get(word):
+                self.words_learned[word] += 1
+            else:
+                self.words_learned[word] = 1
+            return "Prawidłowo!"
+        else:
+            self.words_learned[word] = 0
+            return "Nieprawidłowo :(."
+
+    def sprawdz_progres(self):
+        learned_words = len([word for word in self.words_learned if self.words_learned[word]>0])
+        total_words = len(self.words_to_learn)
+        for word in self.words_learned:
+            if self.words_learned[word]>0:
+                self.words_learned[word] = 7
+        return f"Progres: {learned_words}/{total_words} słówek zaliczonych"
+
+    def aktualizuj_sesje(self):
+        self.last_session = datetime.datetime.now()
+        filename = f'{self.username}_session.txt'
+        with open(filename, 'w') as f:
+            f.write(f"Ostatnia sesja: {self.last_session}\n")
+            for i, (word, days_left) in enumerate(self.words_learned.items()):
+                f.write(f"{i + 1} {word} - {days_left} dni do przerobienia\n")
+
+
+class Aplikacja:
+    def __init__(self):
+        self.users = {}
+
+    def glowne_menu(self):
+        while True:
+            print("1. Zarejestruj")
+            print("2. Zaloguj")
+            print("3. Wyjście")
+
+            choice = input("Wpisz swój wybór: ")
+
+            if choice == "1":
+                username = input("Wprowadź nazwę użytkownika: ")
+                password = input("Wprowadź hasło: ")
+                print(self.stworz_konto(username, password))
+            elif choice == "2":
+                username = input("Wprowadź nazwę użytkownika: ")
+                password = input("Wprowadź hasło: ")
+                login_status = self.zaloguj(username, password)
+                print(login_status)
+                if "Witaj" in login_status:
+                    self.menu_uzytkownika(username)
+            elif choice == "3":
+                break
+            else:
+                print("Zły wybór! Spróbuj ponownie.")
+
+    def stworz_konto(self, username, password):
+        if not username or not password:
+            return "Error: Pole nazwa użytkownika bądź hasło nie może być puste"
+        if username in self.users:
+            return "Error: Nazwa użytkownika zajęta, spróbuj innej nazwy"
+        self.users[username] = Uzytkownik(username, password)
+        with open("login_data.txt", "a") as file:
+            file.write(f"{username},{password}\n")
+        return f"Konto stworzone dla: {username}!"
+
+    def zaloguj(self, username, password):
+        if not username or not password:
+            return "Error: Pole nazwa użytkownika bądź hasło nie może być puste"
+        with open("login_data.txt", "r") as file:
+            data = file.readlines()
+            for line in data:
+                if f"{username},{password}\n" == line:
+                    if username not in self.users:
+                        self.users[username] = Uzytkownik(username, password)
+                    self.importowanie_sesji_uzytkownika(username)
+                    return f"Witaj, {username}!"
+            else:
+                return "Error: Nieprawidłowa nazwa użytkownika bądź hasło"
+
+    def importowanie_slowek(self, username, file_path):
+        if not username:
+            return "Error: Pole użytkownika nie może być puste"
+        if username not in self.users:
+            return "Error: Nie ma takiego użytkownika, zarejestruj się bądź popraw nazwę użytkownika"
+        try:
+            with open(file_path, 'r') as f:
+                words = [line.strip().split(',') for line in f.readlines()]
+                self.users[username].words_to_learn = dict(words)
+            return f"Słówka zaimportowane poprawnie dla użytkownika: {username}!"
+        except Exception as e:
+            return f"Error: {e}"
+
+    def test_slowka(self, username):
+        for word in self.users[username].words_to_learn:
+            translation = input(f"Przetłumacz słówko {word}: ")
+            print(self.users[username].test_slowko(word, translation))
+            print(self.users[username].sprawdz_progres())
+
+    def sprawdz_progres(self, username):
+        return self.users[username].sprawdz_progres()
+
+    def importowanie_sesji_uzytkownika(self, username):
+        if not username:
+            return "Error: Pole użytkownika nie może być puste"
+        if username not in self.users:
+            return "Error: Nie ma takiego użytkownika, zarejestuj się bądź popraw nazwę użytkownika"
+        try:
+            with open(f'{username}_session.txt', 'r') as f:
+                self.users[username].words_learned = {}
+                for line in f.readlines():
+                    if line.startswith("Ostatnia sesja:"):
+                        last_session = datetime.datetime.strptime(line.split(":")[-1].strip(), "%Y-%m-%d %H:%M:%S.%f")
+                        if last_session + datetime.timedelta(days=7) > datetime.datetime.now():
+                            continue
+                    else:
+                        word, days_left = line.strip().split(" - ")
+                        days_left = int(days_left)
+                        self.users[username].words_learned[word] = days_left
+            return f"Sesja dla uzytkownika {username} zaimportowana poprawnie!"
+        except Exception as e:
+            return f"Error: {e}"
+
+    def menu_uzytkownika(self, username):
+        while True:
+            print("Menu użytkownika:")
+            print("1. Importowanie słówek")
+            print("2. Test słówek")
+            print("3. Test słówek z 0 dni do przerobienia")
+            print("4. Sprawdzenie progresu")
+            print("5. Wyloguj")
+            choice = input("Wpisz swój wybór: ")
+            if choice == '1':
+                file_path = input("Wprowadź ścieżkę do pliku(nazwa.csv): ")
+                print(self.importowanie_slowek(username, file_path))
+            elif choice == '2':
+                self.test_slowka(username)
+            elif choice == '3':
+#blad
+                self.testuj_slowka_zero_dni(username)
+            elif choice == '4':
+                print(self.users[username].sprawdz_progres())
+            elif choice == '5':
+                self.wyloguj()
+                self.aktualizuj_sesje(username)
+                break
+            else:
+                print("Nieprawidłowy wybór, spróbuj ponownie.")
+
+    def testuj_slowka_zero_dni(self, username):
+        words_to_test = [word for word in self.users[username].words_learned if
+                         self.users[username].words_learned[word] == 0]
+        for word in words_to_test:
+            translation = input(f"Przetłumacz {word}: ")
+            print(self.users[username].test_slowko(word, translation))
+        print(self.users[username].sprawdz_progres())
+
+    def wyloguj(self):
+        return f"Poprawnie wylogowano!"
+
+    def aktualizuj_sesje(self, username):
+#blad
+        self.users[username].aktualizuj_sesje()
+
+
+app = Aplikacja()
+app.glowne_menu()
