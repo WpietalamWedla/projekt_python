@@ -1,0 +1,11 @@
+Ostatnia sesja: 2023-02-03 14:14:02.433451
+1 system operacyjny - 7 dni do przerobienia
+2 serwer - 7 dni do przerobienia
+3 siec - 7 dni do przerobienia
+4 chmura - 7 dni do przerobienia
+5 interfejs - 7 dni do przerobienia
+6 program - 7 dni do przerobienia
+7 drukarka - 7 dni do przerobienia
+8 plyta glowna - 0 dni do przerobienia
+9 procesor - 0 dni do przerobienia
+10 dysk twardy - 0 dni do przerobienia
